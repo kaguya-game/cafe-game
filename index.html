@@ -164,8 +164,11 @@
                 <span class="text-[8px] text-[#a89685] font-bold">売上</span>
                 <span id="score" class="text-base font-bold">0</span>
             </div>
-            <div class="bg-[#5d5146] px-3 py-0.5 rounded-lg">
-                <span id="timer" class="text-base font-bold text-[#f4d35e]">60</span>
+            <div class="flex items-center space-x-2">
+                <div class="bg-[#5d5146] px-3 py-0.5 rounded-lg">
+                    <span id="timer" class="text-base font-bold text-[#f4d35e]">60</span>
+                </div>
+                <button id="pause-btn" onclick="togglePause()" class="bg-[#5d5146] hover:bg-[#6b5f53] text-white px-2 py-0.5 rounded-md text-[11px]">一時停止</button>
             </div>
             <div class="flex flex-col items-end">
                 <span id="rank" class="text-[9px] font-bold text-[#a89685]">見習い</span>
@@ -270,6 +273,12 @@
             <button onclick="startGame()" class="bg-[#8ba88e] text-white text-sm font-bold py-3 px-10 rounded-full shadow-xl tracking-widest transition-all active:scale-95">
                 開店する
             </button>
+        </div>
+
+        <div id="pause-overlay" class="hidden absolute inset-0 bg-[#000000]/50 flex flex-col items-center justify-center p-6 text-center z-50">
+            <h2 class="text-2xl font-bold text-white mb-2">一時停止中</h2>
+            <p class="text-[#a89685] mb-4 text-[12px]">ゲームを一時停止しています。続行するには再開を押してください。</p>
+            <button onclick="resumeGame()" class="bg-[#8ba88e] text-white text-sm font-bold py-3 px-8 rounded-full shadow-xl active:scale-95">再開</button>
         </div>
     </div>
 
@@ -452,6 +461,7 @@
         let score = 0;
         let timeLeft = 60;
         let gameActive = false;
+        let paused = false;
         let currentOrder = null;
         let currentCup = [];
         let timerId = null;
@@ -473,9 +483,11 @@
             score = 0;
             timeLeft = 60;
             gameActive = true;
+            paused = false;
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
             overlay.classList.add('hidden');
+            document.getElementById('pause-btn').innerText = '一時停止';
             resumeAudio();
             playStart();
             newOrder();
@@ -485,10 +497,34 @@
         function startTimer() {
             if (timerId) clearInterval(timerId);
             timerId = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) endGame();
+                if (!paused) {
+                    timeLeft--;
+                    timerEl.innerText = timeLeft;
+                    if (timeLeft <= 0) endGame();
+                }
             }, 1000);
+        }
+
+        // Pause / Resume controls
+        function togglePause() {
+            if (!gameActive) return;
+            if (paused) resumeGame(); else pauseGame();
+        }
+
+        function pauseGame() {
+            if (!gameActive || paused) return;
+            paused = true;
+            if (timerId) clearInterval(timerId);
+            document.getElementById('pause-overlay').classList.remove('hidden');
+            document.getElementById('pause-btn').innerText = '再開';
+        }
+
+        function resumeGame() {
+            if (!gameActive || !paused) return;
+            paused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('pause-btn').innerText = '一時停止';
+            startTimer();
         }
 
         function endGame() {
@@ -520,7 +556,7 @@
         }
 
         function addIngredient(type) {
-            if (!gameActive || currentCup.length >= 6) return;
+            if (!gameActive || paused || currentCup.length >= 6) return;
             currentCup.push(type);
             playSoundForIngredient(type);
             updateUI();
@@ -552,7 +588,7 @@
         }
 
         function serveDrink() {
-            if (!gameActive || currentCup.length === 0) return;
+            if (!gameActive || paused || currentCup.length === 0) return;
             const isCorrect = checkOrder();
             if (isCorrect) {
                 const points = currentOrder.ingredients.length >= 3 ? 300 : 150;
@@ -576,6 +612,7 @@
         }
 
         function trashDrink() {
+            if (paused || !gameActive) return;
             currentCup = [];
             playTrash();
             updateUI();
