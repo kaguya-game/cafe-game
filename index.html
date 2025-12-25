@@ -313,7 +313,7 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.12, decay = 0.02) {
+        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.12, decay = 0.02, filter) {
             if (!soundEnabled) return;
             resumeAudio();
             const o = audioCtx.createOscillator();
@@ -321,7 +321,12 @@
             o.type = type;
             o.frequency.value = freq;
             g.gain.value = volume;
-            o.connect(g);
+            if (filter) {
+                filter.connect(g);
+                o.connect(filter);
+            } else {
+                o.connect(g);
+            }
             g.connect(masterGain);
             const now = audioCtx.currentTime;
             g.gain.setValueAtTime(volume, now);
@@ -330,11 +335,113 @@
             o.stop(now + duration + decay + 0.01);
         }
 
+        // Generic tones
         function playClick() { playTone(880, 'square', 0.04, 0.06); }
         function playSuccess() { playTone(660, 'sawtooth', 0.12, 0.12); setTimeout(() => playTone(990, 'sine', 0.08, 0.09), 120); }
         function playFail() { playTone(220, 'sawtooth', 0.16, 0.16); }
         function playTrash() { playTone(160, 'sine', 0.12, 0.12); setTimeout(() => playTone(120, 'sine', 0.08, 0.1), 80); }
         function playStart() { playTone(880, 'sine', 0.12, 0.14); setTimeout(() => playTone(1320, 'sine', 0.12, 0.14), 150); }
+
+        // Pouring sound for liquids (coffee/tea/milk)
+        function playPour() {
+            if (!soundEnabled) return;
+            resumeAudio();
+            const now = audioCtx.currentTime;
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            const filt = audioCtx.createBiquadFilter();
+            filt.type = 'lowpass';
+            filt.frequency.setValueAtTime(1500, now);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(900, now);
+            o.frequency.exponentialRampToValueAtTime(220, now + 0.28);
+            g.gain.setValueAtTime(0.12, now);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+            o.connect(filt);
+            filt.connect(g);
+            g.connect(masterGain);
+            o.start(now);
+            o.stop(now + 0.36);
+        }
+
+        // Ice clink — short metallic ticks
+        function playIceClink() {
+            if (!soundEnabled) return;
+            resumeAudio();
+            const now = audioCtx.currentTime;
+            const makeBlip = (freq, t) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = 'triangle';
+                o.frequency.value = freq;
+                g.gain.value = 0.08;
+                o.connect(g);
+                g.connect(masterGain);
+                g.gain.setValueAtTime(0.08, now + t);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.08);
+                o.start(now + t);
+                o.stop(now + t + 0.09);
+            };
+            makeBlip(2500, 0);
+            makeBlip(1800, 0.05);
+        }
+
+        // Lemon zing — bright, short upper-frequency slice
+        function playLemonZing() {
+            if (!soundEnabled) return;
+            resumeAudio();
+            const now = audioCtx.currentTime;
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            const bp = audioCtx.createBiquadFilter();
+            bp.type = 'highpass';
+            bp.frequency.value = 800;
+            o.type = 'sine';
+            o.frequency.setValueAtTime(1400, now);
+            g.gain.setValueAtTime(0.09, now);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+            o.connect(bp);
+            bp.connect(g);
+            g.connect(masterGain);
+            o.start(now);
+            o.stop(now + 0.13);
+        }
+
+        // Sugar sprinkle — small soft arpeggio
+        function playSugarSprinkle() {
+            if (!soundEnabled) return;
+            resumeAudio();
+            const now = audioCtx.currentTime;
+            const freqs = [1200, 1500, 1800];
+            freqs.forEach((f, i) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = 'triangle';
+                o.frequency.value = f;
+                g.gain.value = 0.05;
+                o.connect(g);
+                g.connect(masterGain);
+                g.gain.setValueAtTime(0.05, now + i * 0.04);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.04 + 0.08);
+                o.start(now + i * 0.04);
+                o.stop(now + i * 0.04 + 0.09);
+            });
+        }
+
+        function playSoundForIngredient(type) {
+            if (!soundEnabled) return;
+            if (type === 'coffee' || type === 'tea' || type === 'milk') {
+                playPour();
+            } else if (type === 'ice') {
+                playIceClink();
+            } else if (type === 'lemon') {
+                playLemonZing();
+            } else if (type === 'sugar') {
+                playSugarSprinkle();
+            } else {
+                playClick();
+            }
+        }
 
         function toggleSound() {
             soundEnabled = document.getElementById('sound-toggle').checked;
@@ -415,7 +522,7 @@
         function addIngredient(type) {
             if (!gameActive || currentCup.length >= 6) return;
             currentCup.push(type);
-            playClick();
+            playSoundForIngredient(type);
             updateUI();
         }
 
