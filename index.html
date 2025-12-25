@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cafe Master - Ultra Compact</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Quicksand:wght@500;700&display=swap');
+        
+        :root {
+            --color-bg: #f7f3ef;
+            --color-dark: #4a3f35;
+            --color-tray: #556b2f; 
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-dark);
+            touch-action: manipulation;
+            overflow: hidden;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #game-container {
+            position: relative;
+            max-width: 400px;
+            width: 100%;
+            height: 100%;
+            max-height: 800px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* トレーエリア */
+        .wood-tray {
+            background: var(--color-tray);
+            border: 3px solid #3e4d22;
+            border-radius: 20px;
+            padding: 8px;
+            position: relative;
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .serving-area {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            height: 85px; 
+            margin-bottom: 6px;
+        }
+
+        .cup-container {
+            position: relative;
+            width: 50px; 
+            height: 60px;
+        }
+
+        .cup-handle {
+            position: absolute;
+            right: -9px;
+            top: 14px;
+            width: 14px;
+            height: 22px;
+            border: 3px solid #ffffff;
+            border-radius: 6px;
+            z-index: 1;
+        }
+
+        .cup-body {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #ffffff;
+            border-radius: 5px 5px 18px 18px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 2;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .plate-container {
+            position: relative;
+            width: 80px; 
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .food-on-plate {
+            position: absolute;
+            bottom: 12px; 
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            width: 100%;
+        }
+
+        .liquid-layer {
+            width: 100%;
+            height: 25%;
+            transition: all 0.2s ease;
+        }
+
+        .color-coffee { background-color: #4a2c2a !important; }
+        .color-milk { background-color: #fcf9f2 !important; }
+        .color-tea { background-color: #b35a4d !important; }
+        .color-sugar { background-color: rgba(255,255,255,0.8) !important; }
+        .color-ice { background-color: rgba(200, 230, 255, 0.5) !important; }
+        .color-lemon { background-color: #f4d35e !important; }
+
+        .btn-ingredient, .btn-food {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 2px 0 #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            height: 52px;
+        }
+        .btn-ingredient:active, .btn-food:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 0 #e5e7eb;
+        }
+
+        .customer-bubble {
+            background: #ffffff;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container" class="border-[4px] border-[#4a3f35]">
+        
+        <!-- ヘッダー -->
+        <div class="bg-[#4a3f35] text-white p-2 px-3 flex justify-between items-center shrink-0">
+            <div class="flex flex-col">
+                <span class="text-[8px] text-[#a89685] font-bold">売上</span>
+                <span id="score" class="text-base font-bold">0</span>
+            </div>
+            <div class="bg-[#5d5146] px-3 py-0.5 rounded-lg">
+                <span id="timer" class="text-base font-bold text-[#f4d35e]">60</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span id="rank" class="text-[9px] font-bold text-[#a89685]">見習い</span>
+                <div class="flex items-center space-x-1">
+                    <span class="text-[7px] text-[#a89685]">ヒント</span>
+                    <input type="checkbox" id="training-mode" onchange="toggleTraining()" class="w-2.5 h-2.5 accent-[#8ba88e]">
+                </div>
+            </div>
+        </div>
+
+        <!-- メイン -->
+        <div class="flex-1 flex flex-col p-2 bg-[#f7f3ef] overflow-hidden">
+            
+            <!-- お客さん -->
+            <div class="flex items-center space-x-2 mb-2 shrink-0">
+                <div id="customer-container" class="w-9 h-9 bg-[#e9dcc9] rounded-full flex items-center justify-center text-lg border border-white">
+                    👤
+                </div>
+                <div class="customer-bubble flex-1 p-2 border border-[#e5e1da]">
+                    <p id="order-text" class="font-bold text-[#4a3f35] text-[11px] leading-tight">いらっしゃいませ。</p>
+                    <div id="hint-area" class="hidden mt-1 border-t border-dashed border-[#e5e1da]">
+                        <div id="hint-icons" class="flex gap-1 opacity-60"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- トレー（最小・操作エリアへ近接） -->
+            <div class="wood-tray">
+                <div id="toast" class="absolute top-0.5 px-3 py-0.5 rounded-full bg-[#4a3f35] text-white text-[8px] opacity-0 transition-all duration-300 z-50">
+                    Message
+                </div>
+
+                <div class="serving-area">
+                    <div id="cup-wrapper" class="cup-container cup-type-hot">
+                        <div class="cup-handle"></div>
+                        <div id="cup-contents" class="cup-body"></div>
+                    </div>
+                    <div class="plate-container">
+                        <div id="plate-contents" class="food-on-plate"></div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3 items-center w-full justify-center">
+                    <button onclick="serveDrink()" class="bg-[#8ba88e] text-white px-6 py-2 rounded-full font-bold shadow-md active:scale-95 text-[11px] uppercase border-b-2 border-[#6d8570]">
+                        提供
+                    </button>
+                    <p id="current-recipe" class="text-[8px] text-white/70 font-bold uppercase w-16 text-center truncate">空</p>
+                    <button onclick="trashDrink()" class="bg-[#d9b99b] text-white px-4 py-2 rounded-full font-bold shadow-md active:scale-95 text-[11px] uppercase border-b-2 border-[#b89a7e]">
+                        消去
+                    </button>
+                </div>
+            </div>
+
+            <!-- 操作パネル（トレーのすぐ下に配置） -->
+            <div class="shrink-0 space-y-1.5 mt-1">
+                <div class="grid grid-cols-3 gap-1">
+                    <button onclick="addIngredient('coffee')" class="btn-ingredient">
+                        <span class="text-base">☕</span><span class="text-[8px] font-bold text-[#8b7e74]">コーヒー</span>
+                    </button>
+                    <button onclick="addIngredient('milk')" class="btn-ingredient">
+                        <span class="text-base">🥛</span><span class="text-[8px] font-bold text-[#8b7e74]">ミルク</span>
+                    </button>
+                    <button onclick="addIngredient('tea')" class="btn-ingredient">
+                        <span class="text-base">🍂</span><span class="text-[8px] font-bold text-[#8b7e74]">紅茶</span>
+                    </button>
+                    <button onclick="addIngredient('ice')" class="btn-ingredient">
+                        <span class="text-base">🧊</span><span class="text-[8px] font-bold text-[#8b7e74]">氷</span>
+                    </button>
+                    <button onclick="addIngredient('sugar')" class="btn-ingredient">
+                        <span class="text-base">🍬</span><span class="text-[8px] font-bold text-[#8b7e74]">砂糖</span>
+                    </button>
+                    <button onclick="addIngredient('lemon')" class="btn-ingredient">
+                        <span class="text-base">🍋</span><span class="text-[8px] font-bold text-[#8b7e74]">レモン</span>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-1 border-t border-[#e5e1da] pt-1.5">
+                    <button onclick="addIngredient('cake')" class="btn-food">
+                        <span class="text-base">🍰</span><span class="text-[8px] font-bold text-[#a65d50]">ケーキ</span>
+                    </button>
+                    <button onclick="addIngredient('sandwich')" class="btn-food">
+                        <span class="text-base">🥪</span><span class="text-[8px] font-bold text-[#a65d50]">サンド</span>
+                    </button>
+                    <button onclick="addIngredient('donut')" class="btn-food">
+                        <span class="text-base">🍩</span><span class="text-[8px] font-bold text-[#a65d50]">ドーナツ</span>
+                    </button>
+                    <button onclick="addIngredient('pancake')" class="btn-food">
+                        <span class="text-base">🥞</span><span class="text-[8px] font-bold text-[#a65d50]">パンケーキ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- オーバーレイ -->
+        <div id="overlay" class="absolute inset-0 bg-[#4a3f35]/95 flex flex-col items-center justify-center p-6 text-center z-50">
+            <h1 id="overlay-title" class="text-2xl font-bold text-white mb-2 tracking-widest font-['Quicksand']">CAFE MASTER</h1>
+            <p id="overlay-msg" class="text-[#a89685] mb-6 text-[10px]">最高の一杯を、あなたに。</p>
+            <button onclick="startGame()" class="bg-[#8ba88e] text-white text-sm font-bold py-3 px-10 rounded-full shadow-xl tracking-widest transition-all active:scale-95">
+                開店する
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const menu = [
+            { name: "アイスコーヒー", ingredients: ["coffee", "ice"], text: "アイスコーヒーを一杯。", icons: ["☕", "🧊"] },
+            { name: "カフェラテ", ingredients: ["coffee", "milk"], text: "カフェラテ、お願いします。", icons: ["☕", "🥛"] },
+            { name: "ミルクティー", ingredients: ["tea", "milk"], text: "温かいミルクティーを。", icons: ["🍂", "🥛"] },
+            { name: "レモンティー", ingredients: ["tea", "lemon"], text: "レモンティーにしようかな。", icons: ["🍂", "🍋"] },
+            { name: "サンドイッチ", ingredients: ["sandwich"], text: "サンドイッチをいただけますか？", icons: ["🥪"] },
+            { name: "ショートケーキ", ingredients: ["cake"], text: "ショートケーキ、一つください。", icons: ["🍰"] },
+            { name: "ケーキセット", ingredients: ["coffee", "cake"], text: "コーヒーとケーキのセットを。", icons: ["☕", "🍰"] },
+            { name: "ドーナツセット", ingredients: ["coffee", "milk", "ice", "donut"], text: "アイスラテとドーナツのセットで。", icons: ["☕", "🥛", "🧊", "🍩"] },
+            { name: "ティータイムセット", ingredients: ["tea", "cake", "sandwich"], text: "紅茶とケーキ、サンドイッチを。", icons: ["🍂", "🍰", "🥪"] },
+            { name: "パンケーキセット", ingredients: ["coffee", "milk", "sugar", "pancake"], text: "甘いラテとパンケーキを。", icons: ["☕", "🥛", "🍬", "🥞"] }
+        ];
+
+        const ingredientData = {
+            coffee: { label: "Coffee", color: "color-coffee", type: "liquid", emoji: "☕" },
+            milk: { label: "Milk", color: "color-milk", type: "liquid", emoji: "🥛" },
+            tea: { label: "Tea", color: "color-tea", type: "liquid", emoji: "🍂" },
+            sugar: { label: "Sugar", color: "color-sugar", type: "liquid", emoji: "🍬" },
+            ice: { label: "Ice", color: "color-ice", type: "liquid", emoji: "🧊" },
+            lemon: { label: "Lemon", color: "color-lemon", type: "liquid", emoji: "🍋" },
+            cake: { label: "Cake", color: "food", type: "food", emoji: "🍰" },
+            sandwich: { label: "Sandwich", color: "food", type: "food", emoji: "🥪" },
+            donut: { label: "Donut", color: "food", type: "food", emoji: "🍩" },
+            pancake: { label: "Pancake", color: "food", type: "food", emoji: "🥞" }
+        };
+
+        const stylishCustomers = ["🎨", "👒", "💼", "📸", "🖋️", "🚲", "🌿", "🐈", "🎻"];
+
+        let score = 0;
+        let timeLeft = 60;
+        let gameActive = false;
+        let currentOrder = null;
+        let currentCup = [];
+        let timerId = null;
+        let trainingMode = false;
+
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const overlay = document.getElementById('overlay');
+        const orderTextEl = document.getElementById('order-text');
+        const cupContentsEl = document.getElementById('cup-contents');
+        const plateContentsEl = document.getElementById('plate-contents');
+        const cupWrapper = document.getElementById('cup-wrapper');
+        const currentRecipeEl = document.getElementById('current-recipe');
+        const customerContainer = document.getElementById('customer-container');
+        const hintArea = document.getElementById('hint-area');
+        const hintIcons = document.getElementById('hint-icons');
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            gameActive = true;
+            scoreEl.innerText = score;
+            timerEl.innerText = timeLeft;
+            overlay.classList.add('hidden');
+            newOrder();
+            startTimer();
+        }
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerId);
+            overlay.classList.remove('hidden');
+            document.getElementById('overlay-title').innerText = "CLOSED";
+            let rank = getRank(score);
+            document.getElementById('overlay-msg').innerHTML = `
+                売上: <span class="text-white font-bold">${score}円</span><br>
+                ${rank}
+            `;
+            document.querySelector('#overlay button').innerText = "もう一度";
+        }
+
+        function newOrder() {
+            currentOrder = menu[Math.floor(Math.random() * menu.length)];
+            customerContainer.innerText = stylishCustomers[Math.floor(Math.random() * stylishCustomers.length)];
+            orderTextEl.innerText = currentOrder.text;
+            hintIcons.innerHTML = currentOrder.icons.map(icon => 
+                `<span class="bg-[#f7f3ef] border border-[#e5e1da] rounded px-1 py-0.5 text-[8px]">${icon}</span>`
+            ).join('');
+            trashDrink();
+        }
+
+        function toggleTraining() {
+            trainingMode = document.getElementById('training-mode').checked;
+            hintArea.classList.toggle('hidden', !trainingMode);
+        }
+
+        function addIngredient(type) {
+            if (!gameActive || currentCup.length >= 6) return;
+            currentCup.push(type);
+            updateUI();
+        }
+
+        function updateUI() {
+            cupContentsEl.innerHTML = '';
+            plateContentsEl.innerHTML = '';
+            
+            const isIce = currentCup.includes('ice');
+            cupWrapper.className = `cup-container ${isIce ? 'cup-type-ice' : 'cup-type-hot'}`;
+
+            currentCup.forEach(ing => {
+                const data = ingredientData[ing];
+                if (data.type === "food") {
+                    const item = document.createElement('div');
+                    item.className = "text-3xl drop-shadow-sm mb-[-6px]";
+                    item.innerText = data.emoji;
+                    plateContentsEl.appendChild(item);
+                } else {
+                    const item = document.createElement('div');
+                    item.className = `liquid-layer ${data.color}`;
+                    if (ing === 'ice') item.innerHTML = `<div class="flex justify-center text-[7px] opacity-20 mt-0.5">🧊</div>`;
+                    cupContentsEl.appendChild(item);
+                }
+            });
+
+            currentRecipeEl.innerText = currentCup.length === 0 ? "空" : currentCup.map(ing => ingredientData[ing].label).join('+');
+        }
+
+        function serveDrink() {
+            if (!gameActive || currentCup.length === 0) return;
+            const isCorrect = checkOrder();
+            if (isCorrect) {
+                const points = currentOrder.ingredients.length >= 3 ? 300 : 150;
+                score += points;
+                showToast("＋" + points);
+                newOrder();
+            } else {
+                showToast("ミス！");
+                score = Math.max(0, score - 50);
+                trashDrink();
+            }
+            scoreEl.innerText = score;
+            document.getElementById('rank').innerText = getRank(score);
+        }
+
+        function checkOrder() {
+            if (currentCup.length !== currentOrder.ingredients.length) return false;
+            return [...currentCup].sort().every((val, index) => val === [...currentOrder.ingredients].sort()[index]);
+        }
+
+        function trashDrink() {
+            currentCup = [];
+            updateUI();
+        }
+
+        function getRank(s) {
+            if (s >= 3000) return "伝説のマスター";
+            if (s >= 1500) return "ベテラン店員";
+            if (s >= 800) return "一人前";
+            return "見習い";
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(-3px)';
+            setTimeout(() => { 
+                toast.style.opacity = '0'; 
+                toast.style.transform = 'translateY(0)';
+            }, 800);
+        }
+    </script>
+</body>
+</html>
