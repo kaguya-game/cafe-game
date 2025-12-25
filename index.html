@@ -173,6 +173,10 @@
                     <span class="text-[7px] text-[#a89685]">ヒント</span>
                     <input type="checkbox" id="training-mode" onchange="toggleTraining()" class="w-2.5 h-2.5 accent-[#8ba88e]">
                 </div>
+                <div class="flex items-center space-x-1 mt-1">
+                    <span class="text-[7px] text-[#a89685]">音</span>
+                    <input type="checkbox" id="sound-toggle" checked onchange="toggleSound()" class="w-3 h-3 accent-[#f4d35e]">
+                </div>
             </div>
         </div>
 
@@ -298,6 +302,46 @@
 
         const stylishCustomers = ["🎨", "👒", "💼", "📸", "🖋️", "🚲", "🌿", "🐈", "🎻"];
 
+        // --- Sound synthesizer (WebAudio) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.15;
+        masterGain.connect(audioCtx.destination);
+        let soundEnabled = true;
+
+        function resumeAudio() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.12, decay = 0.02) {
+            if (!soundEnabled) return;
+            resumeAudio();
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = type;
+            o.frequency.value = freq;
+            g.gain.value = volume;
+            o.connect(g);
+            g.connect(masterGain);
+            const now = audioCtx.currentTime;
+            g.gain.setValueAtTime(volume, now);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + duration + decay);
+            o.start(now);
+            o.stop(now + duration + decay + 0.01);
+        }
+
+        function playClick() { playTone(880, 'square', 0.04, 0.06); }
+        function playSuccess() { playTone(660, 'sawtooth', 0.12, 0.12); setTimeout(() => playTone(990, 'sine', 0.08, 0.09), 120); }
+        function playFail() { playTone(220, 'sawtooth', 0.16, 0.16); }
+        function playTrash() { playTone(160, 'sine', 0.12, 0.12); setTimeout(() => playTone(120, 'sine', 0.08, 0.1), 80); }
+        function playStart() { playTone(880, 'sine', 0.12, 0.14); setTimeout(() => playTone(1320, 'sine', 0.12, 0.14), 150); }
+
+        function toggleSound() {
+            soundEnabled = document.getElementById('sound-toggle').checked;
+            masterGain.gain.value = soundEnabled ? 0.15 : 0;
+        }
+
+
         let score = 0;
         let timeLeft = 60;
         let gameActive = false;
@@ -325,6 +369,8 @@
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
             overlay.classList.add('hidden');
+            resumeAudio();
+            playStart();
             newOrder();
             startTimer();
         }
@@ -369,6 +415,7 @@
         function addIngredient(type) {
             if (!gameActive || currentCup.length >= 6) return;
             currentCup.push(type);
+            playClick();
             updateUI();
         }
 
@@ -403,9 +450,11 @@
             if (isCorrect) {
                 const points = currentOrder.ingredients.length >= 3 ? 300 : 150;
                 score += points;
+                playSuccess();
                 showToast("＋" + points);
                 newOrder();
             } else {
+                playFail();
                 showToast("ミス！");
                 score = Math.max(0, score - 50);
                 trashDrink();
@@ -421,6 +470,7 @@
 
         function trashDrink() {
             currentCup = [];
+            playTrash();
             updateUI();
         }
 
