@@ -478,15 +478,15 @@
             console.log('Starting BGM');
             resumeAudio();
             bgmGain = audioCtx.createGain();
-            bgmGain.gain.value = 0.3; // Increased volume
+            bgmGain.gain.value = 0.2; // Adjusted volume
             bgmGain.connect(masterGain);
 
-            // Simple chord progression: Cmaj7 - Am7 - Fmaj7 - G7 (cafe jazz feel)
+            // Cafe jazz chord progression: C6 - A7 - Dm7 - G7
             const chords = [
-                [261.63, 329.63, 392.00, 523.25], // Cmaj7
-                [220.00, 261.63, 329.63, 440.00], // Am7
-                [174.61, 220.00, 261.63, 349.23], // Fmaj7
-                [196.00, 246.94, 293.66, 392.00]  // G7
+                [261.63, 329.63, 392.00, 440.00], // C6
+                [220.00, 277.18, 329.63, 392.00], // A7
+                [293.66, 349.23, 440.00, 523.25], // Dm7
+                [196.00, 246.94, 293.66, 349.23]  // G7
             ];
 
             let chordIndex = 0;
@@ -502,10 +502,10 @@
                     const g = audioCtx.createGain();
                     const filt = audioCtx.createBiquadFilter();
                     filt.type = 'lowpass';
-                    filt.frequency.value = 800;
-                    o.type = 'sine';
+                    filt.frequency.value = 1000;
+                    o.type = 'triangle';
                     o.frequency.value = freq;
-                    g.gain.value = 0.1; // Increased per oscillator gain
+                    g.gain.value = 0.08;
                     o.connect(filt);
                     filt.connect(g);
                     g.connect(bgmGain);
@@ -513,8 +513,20 @@
                     bgmOscillators.push(o);
                 });
 
+                // Add bass note
+                const baseFreq = chord[0] / 2;
+                const oBase = audioCtx.createOscillator();
+                const gBase = audioCtx.createGain();
+                oBase.type = 'sawtooth';
+                oBase.frequency.value = baseFreq;
+                gBase.gain.value = 0.05;
+                oBase.connect(gBase);
+                gBase.connect(bgmGain);
+                oBase.start();
+                bgmOscillators.push(oBase);
+
                 chordIndex = (chordIndex + 1) % chords.length;
-                setTimeout(changeChord, 4000); // Change every 4 seconds
+                setTimeout(changeChord, 5000); // Change every 5 seconds
             };
 
             changeChord();
