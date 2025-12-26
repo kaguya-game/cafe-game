@@ -327,9 +327,7 @@
         masterGain.connect(audioCtx.destination);
         let soundEnabled = true;
 
-        // BGM nodes
-        let bgmGain = null;
-        let bgmOscillators = [];
+        // BGM audio element
         let bgmPlaying = false;
 
         function resumeAudio() {
@@ -469,75 +467,26 @@
         function toggleSound() {
             soundEnabled = document.getElementById('sound-toggle').checked;
             masterGain.gain.value = soundEnabled ? 0.15 : 0;
-            if (bgmGain) bgmGain.gain.value = soundEnabled ? 0.3 : 0;
+            const bgmAudio = document.getElementById('bgm-audio');
+            bgmAudio.volume = soundEnabled ? 0.15 : 0;
         }
 
-        // Cafe-style BGM generator (ambient loop)
+        // BGM player using MP3 file
         function startBGM() {
             if (bgmPlaying || !soundEnabled) return;
             console.log('Starting BGM');
-            resumeAudio();
-            bgmGain = audioCtx.createGain();
-            bgmGain.gain.value = 0.2; // Adjusted volume
-            bgmGain.connect(masterGain);
-
-            // Cafe jazz chord progression: C6 - A7 - Dm7 - G7
-            const chords = [
-                [261.63, 329.63, 392.00, 440.00], // C6
-                [220.00, 277.18, 329.63, 392.00], // A7
-                [293.66, 349.23, 440.00, 523.25], // Dm7
-                [196.00, 246.94, 293.66, 349.23]  // G7
-            ];
-
-            let chordIndex = 0;
-            const changeChord = () => {
-                console.log('Changing chord to', chordIndex);
-                // Stop previous oscillators
-                bgmOscillators.forEach(o => o.stop());
-                bgmOscillators = [];
-
-                const chord = chords[chordIndex];
-                chord.forEach((freq, i) => {
-                    const o = audioCtx.createOscillator();
-                    const g = audioCtx.createGain();
-                    const filt = audioCtx.createBiquadFilter();
-                    filt.type = 'lowpass';
-                    filt.frequency.value = 1000;
-                    o.type = 'triangle';
-                    o.frequency.value = freq;
-                    g.gain.value = 0.08;
-                    o.connect(filt);
-                    filt.connect(g);
-                    g.connect(bgmGain);
-                    o.start();
-                    bgmOscillators.push(o);
-                });
-
-                // Add bass note
-                const baseFreq = chord[0] / 2;
-                const oBase = audioCtx.createOscillator();
-                const gBase = audioCtx.createGain();
-                oBase.type = 'sawtooth';
-                oBase.frequency.value = baseFreq;
-                gBase.gain.value = 0.05;
-                oBase.connect(gBase);
-                gBase.connect(bgmGain);
-                oBase.start();
-                bgmOscillators.push(oBase);
-
-                chordIndex = (chordIndex + 1) % chords.length;
-                setTimeout(changeChord, 5000); // Change every 5 seconds
-            };
-
-            changeChord();
-            bgmPlaying = true;
+            const bgmAudio = document.getElementById('bgm-audio');
+            bgmAudio.volume = 0.15;
+            bgmAudio.play().then(() => {
+                bgmPlaying = true;
+            }).catch(err => console.log('BGM play failed:', err));
         }
 
         function stopBGM() {
             if (!bgmPlaying) return;
-            bgmOscillators.forEach(o => o.stop());
-            bgmOscillators = [];
-            bgmGain = null;
+            const bgmAudio = document.getElementById('bgm-audio');
+            bgmAudio.pause();
+            bgmAudio.currentTime = 0;
             bgmPlaying = false;
         }
 
@@ -724,5 +673,6 @@
             }, 800);
         }
     </script>
+    <audio id="bgm-audio" src="cafe-music.mp3" loop preload="auto"></audio>
 </body>
 </html>
