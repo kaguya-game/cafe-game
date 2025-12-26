@@ -571,8 +571,8 @@
             document.getElementById('overlay-title').innerText = "CLOSED";
             let rank = getRank(score);
             document.getElementById('overlay-msg').innerHTML = `
-                売上: <span class="text-white font-bold">${score}円</span><br>
-                ${rank}
+                売上: <span class="text-white font-bold text-xl">${score}円</span><br>
+                <p class="text-white font-bold text-lg mt-2">${rank}</p>
             `;
             document.querySelector('#overlay button').innerText = "もう一度";
         }
